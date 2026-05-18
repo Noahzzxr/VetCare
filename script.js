@@ -4,16 +4,34 @@
   const yearEl = document.getElementById("year");
   const form = document.getElementById("appointmentForm");
   const formStatus = document.getElementById("formStatus");
+  const header = document.querySelector(".header");
 
   // Footer year
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
+  // Header scroll effect
+  function handleScroll() {
+    if (window.scrollY > 50) {
+      header.classList.add("scrolled");
+    } else {
+      header.classList.remove("scrolled");
+    }
+  }
+  window.addEventListener("scroll", handleScroll);
+  handleScroll(); // init
+
   // Mobile menu toggle
   function setMenu(open) {
     if (!navMenu || !navToggle) return;
-    navMenu.classList.toggle("is-open", open);
-    navToggle.setAttribute("aria-expanded", String(open));
-    navToggle.setAttribute("aria-label", open ? "Fechar menu" : "Abrir menu");
+    if (open) {
+      navMenu.classList.add("is-open");
+      navToggle.setAttribute("aria-expanded", "true");
+      navToggle.setAttribute("aria-label", "Fechar menu");
+    } else {
+      navMenu.classList.remove("is-open");
+      navToggle.setAttribute("aria-expanded", "false");
+      navToggle.setAttribute("aria-label", "Abrir menu");
+    }
   }
 
   if (navToggle && navMenu) {
@@ -43,15 +61,14 @@
   }
 
   // Smooth scroll offset for fixed header
-  const header = document.querySelector(".header");
   function getHeaderOffset() {
-    return header ? header.getBoundingClientRect().height + 10 : 80;
+    return header ? header.getBoundingClientRect().height : 80;
   }
 
   document.querySelectorAll('a[href^="#"]').forEach((a) => {
     a.addEventListener("click", (e) => {
       const href = a.getAttribute("href");
-      if (!href || href === "#!") return;
+      if (!href || href === "#" || href === "#!") return;
 
       const el = document.querySelector(href);
       if (!el) return;
@@ -60,8 +77,8 @@
       const top = el.getBoundingClientRect().top + window.pageYOffset - getHeaderOffset();
       window.scrollTo({ top, behavior: "smooth" });
 
-      // Optional: focus form if CTA requested
-      if (a.dataset.focusForm === "true") {
+      // Focus on form if #contato
+      if (href === "#contato") {
         setTimeout(() => {
           const firstInput = document.querySelector('#appointmentForm input[name="name"]');
           if (firstInput) firstInput.focus({ preventScroll: true });
@@ -78,11 +95,11 @@
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add("is-visible");
-            io.unobserve(entry.target);
+            io.unobserve(entry.target); // Run once
           }
         });
       },
-      { threshold: 0.12 }
+      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
     );
 
     revealEls.forEach((el) => io.observe(el));
@@ -111,8 +128,13 @@
 
   function setFieldState(input, ok) {
     if (!input) return;
-    input.style.borderColor = ok ? "rgba(255,255,255,.14)" : "rgba(255,140,140,.45)";
-    input.style.boxShadow = ok ? "none" : "0 0 0 4px rgba(255,140,140,.14)";
+    if (ok) {
+      input.style.borderColor = "";
+      input.style.boxShadow = "";
+    } else {
+      input.style.borderColor = "#ef4444";
+      input.style.boxShadow = "0 0 0 3px rgba(239, 68, 68, 0.2)";
+    }
   }
 
   if (form) {
@@ -132,16 +154,12 @@
       const phone = String(data.get("phone") || "").trim();
       const pet = String(data.get("pet") || "").trim();
       const service = String(data.get("service") || "").trim();
-      const date = String(data.get("date") || "").trim();
-      const time = String(data.get("time") || "").trim();
 
       const fields = {
         name: form.querySelector('input[name="name"]'),
         phone: form.querySelector('input[name="phone"]'),
         pet: form.querySelector('input[name="pet"]'),
         service: form.querySelector('select[name="service"]'),
-        date: form.querySelector('input[name="date"]'),
-        time: form.querySelector('input[name="time"]')
       };
 
       let ok = true;
@@ -149,8 +167,6 @@
       if (!name) { ok = false; setFieldState(fields.name, false); }
       if (!pet)  { ok = false; setFieldState(fields.pet, false); }
       if (!service) { ok = false; setFieldState(fields.service, false); }
-      if (!date) { ok = false; setFieldState(fields.date, false); }
-      if (!time) { ok = false; setFieldState(fields.time, false); }
 
       if (!phone || !isValidPhone(phone)) {
         ok = false;
@@ -158,21 +174,19 @@
       }
 
       if (!ok) {
-        showStatus("Confira os campos obrigatórios e tente novamente.", "error");
+        showStatus("Por favor, preencha todos os campos obrigatórios corretamente.", "error");
         return;
       }
 
       // Simulated success (sem backend)
-      showStatus("Pedido enviado! ✅ Nossa equipe entrará em contato para confirmar o horário.", "success");
+      showStatus("Solicitação enviada com sucesso! ✅ Em breve nossa equipe entrará em contato via WhatsApp.", "success");
       form.reset();
     });
 
     form.addEventListener("reset", () => {
       clearStatus();
-      // reset inline styles
       form.querySelectorAll("input, select, textarea").forEach((el) => {
-        el.style.borderColor = "";
-        el.style.boxShadow = "";
+        setFieldState(el, true);
       });
     });
   }
